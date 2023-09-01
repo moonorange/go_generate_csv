@@ -2,60 +2,37 @@ package large_csv_generator
 
 import (
 	"archive/zip"
-	"encoding/csv"
 	"fmt"
 	"io"
 	"os"
 	"sync"
-	"time"
-
-	"github.com/brianvoe/gofakeit"
-	"github.com/go-errors/errors"
 )
 
-// 並列化してみたが、こっちの方が直列より遅い
-func GenerateLargeCSVParallel(numRows, numGoroutines int) {
+// 並列化してCSVを生成する
+func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
-		go func(wg *sync.WaitGroup) {
-			random := gofakeit.Uint32()
-			err := os.Mkdir("data", 0777)
-			if err != nil {
-				if !errors.Is(err, os.ErrExist) {
-					panic(err)
-				}
-			}
-			file, err := os.Create(fmt.Sprintf("data/%d.csv", random))
-			if err != nil {
-				panic(err)
-			}
-			defer file.Close()
-
-			writer := csv.NewWriter(file)
+		go func(wg *sync.WaitGroup, i int) {
+			fileName := fmt.Sprintf("%s_%d", fileName, i)
+			GenerateLargeCSV(numRows, fileName)
 			defer wg.Done()
-			for j := 0; j < numRows; j++ {
-				row := generateFakeRow()
-				if err := writer.Write(row); err != nil {
-					panic(err)
-				}
-			}
-			writer.Flush()
-		}(&wg)
+		}(&wg, i)
 	}
 	wg.Wait()
-	print("Done Parallel")
-	// err := compressCSVFiles("fake_purchase_transactions_data.zip", numGoroutines)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// print("Compression Done")
+	print("Done GenerateLargeCSVParallel")
+
+	err := compressCSVFiles("test_data.zip", numGoroutines, fileName)
+	if err != nil {
+		panic(err)
+	}
+	print("Compression Done")
 
 }
 
-func compressCSVFiles(zipFileName string, numFiles int) error {
-	zipFile, err := os.Create(zipFileName)
+func compressCSVFiles(zipFileName string, numFiles int, csvFileName string) error {
+	zipFile, err := os.Create(fmt.Sprintf("data/%s", zipFileName))
 	if err != nil {
 		return err
 	}
@@ -65,7 +42,7 @@ func compressCSVFiles(zipFileName string, numFiles int) error {
 	defer zipWriter.Close()
 
 	for i := 0; i < numFiles; i++ {
-		fileName := fmt.Sprintf("fake_purchase_transactions_data%d.csv", i)
+		fileName := fmt.Sprintf("data/%s_%d.csv", csvFileName, i)
 		file, err := os.Open(fileName)
 		if err != nil {
 			return err
@@ -92,6 +69,7 @@ func compressCSVFiles(zipFileName string, numFiles int) error {
 		if err != nil {
 			return err
 		}
+		os.Remove(fileName)
 	}
 	return nil
 }
@@ -126,17 +104,3 @@ func compressCSVFiles(zipFileName string, numFiles int) error {
 // func (w *CsvWriter) Flush() {
 // 	w.csvWriter.Flush()
 // }
-
-func generateFakeRow() []string {
-	startDate := time.Now().AddDate(-1, 0, 0)
-	endDate := time.Now()
-	return []string{
-		gofakeit.UUID(),
-		gofakeit.UUID(),
-		gofakeit.UUID(),
-		fmt.Sprintf("%d", gofakeit.Uint8()),
-		fmt.Sprintf("%d", gofakeit.Uint8()),
-		gofakeit.DateRange(startDate, endDate).Format(time.DateTime),
-		gofakeit.DateRange(startDate, endDate).Format(time.DateTime),
-	}
-}

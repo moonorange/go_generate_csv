@@ -6,16 +6,19 @@ import (
 	"testing"
 )
 
-const totalNumRows = 500000
+const (
+	totalNumRows = 100000000
+	fileName     = "test_data"
+)
 
 func BenchmarkGenerateLargeCSVParallel(b *testing.B) {
-	GenerateLargeCSVParallel(totalNumRows/10, 10)
+	GenerateLargeCSVParallel(totalNumRows/10, 10, fileName)
 	defer CleanUp()
 
 }
 
 func BenchmarkGenerateLargeCSV(b *testing.B) {
-	GenerateLargeCSV(totalNumRows)
+	GenerateLargeCSV(totalNumRows, fileName)
 	defer CleanUp()
 }
 
