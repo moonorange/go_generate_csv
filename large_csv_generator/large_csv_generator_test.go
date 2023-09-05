@@ -1,6 +1,8 @@
 package large_csv_generator
 
 import (
+	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -18,7 +20,19 @@ func BenchmarkGenerateLargeCSVParallel(b *testing.B) {
 }
 
 func BenchmarkGenerateLargeCSV(b *testing.B) {
-	GenerateLargeCSV(totalNumRows, fileName)
+	file, err := os.Create(fmt.Sprintf("data/%s.csv", fileName))
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	writer := csv.NewWriter(file)
+	GenerateLargeCSV(totalNumRows, writer)
 	defer CleanUp()
 }
 

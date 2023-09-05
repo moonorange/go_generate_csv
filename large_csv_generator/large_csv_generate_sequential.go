@@ -4,28 +4,13 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/brianvoe/gofakeit"
-	"github.com/go-errors/errors"
 )
 
-func GenerateLargeCSV(numRows int, fileName string) {
-	err := os.Mkdir("data", 0777)
-	if err != nil {
-		if !errors.Is(err, os.ErrExist) {
-			panic(err)
-		}
-	}
-	file, err := os.Create(fmt.Sprintf("data/%s.csv", fileName))
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
+func GenerateLargeCSV(numRows int, writer *csv.Writer) {
 	for i := 0; i < numRows; i++ {
 		row := generateFakeRow()
 		if err := writer.Write(row); err != nil {

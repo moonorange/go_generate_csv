@@ -35,7 +35,12 @@ func GenerateLargeCSV(numRows int, fileName string) {
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	writer := csv.NewWriter(file)
 	for i := 0; i < numRows; i++ {
@@ -96,7 +101,12 @@ func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName stri
 			panic(err)
 		}
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	// Add numGoroutines to the WaitGroup

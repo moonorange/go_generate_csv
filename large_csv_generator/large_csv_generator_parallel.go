@@ -2,6 +2,7 @@ package large_csv_generator
 
 import (
 	"archive/zip"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,13 @@ import (
 
 // Parallelize CSV generation
 func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
+	err := os.Mkdir("data", 0777)
+	if err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			panic(err)
+		}
+	}
+
 	var wg sync.WaitGroup
 	// Add numGoroutines to the WaitGroup
 	wg.Add(numGoroutines)
@@ -20,7 +28,19 @@ func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 		// Call GenerateLargeCSV in a goroutine for numGoroutines times
 		go func(wg *sync.WaitGroup, i int) {
 			fileName := fmt.Sprintf("%s_%d", fileName, i)
-			GenerateLargeCSV(numRows, fileName)
+			file, err := os.Create(fmt.Sprintf("data/%s.csv", fileName))
+			if err != nil {
+				panic(err)
+			}
+			defer func() {
+				err := file.Close()
+				if err != nil {
+					panic(err)
+				}
+			}()
+
+			writer := csv.NewWriter(file)
+			GenerateLargeCSV(numRows, writer)
 			// Decrement the WaitGroup counter after each goroutine finishes
 			defer wg.Done()
 		}(&wg, i)
@@ -29,7 +49,7 @@ func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 	wg.Wait()
 	fmt.Printf("Done GenerateLargeCSVParallel")
 
-	err := compressCSVFiles(fmt.Sprintf("%s.zip", fileName), numGoroutines, fileName)
+	err = compressCSVFiles(fmt.Sprintf("%s.zip", fileName), numGoroutines, fileName)
 	if err != nil {
 		panic(err)
 	}
@@ -41,9 +61,19 @@ func compressCSVFiles(zipFileName string, numFiles int, csvFileName string) erro
 		return err
 	}
 
-	defer zipFile.Close()
+	defer func() {
+		err := zipFile.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
+	defer func() {
+		err := zipWriter.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	for i := 0; i < numFiles; i++ {
 		fileName := fmt.Sprintf("data/%s_%d.csv", csvFileName, i)
@@ -51,7 +81,12 @@ func compressCSVFiles(zipFileName string, numFiles int, csvFileName string) erro
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() {
+			err := file.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 
 		info, err := file.Stat()
 		if err != nil {
@@ -92,7 +127,12 @@ func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName stri
 			panic(err)
 		}
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	// Add numGoroutines to the WaitGroup
