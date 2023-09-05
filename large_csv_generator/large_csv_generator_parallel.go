@@ -6,29 +6,33 @@ import (
 	"io"
 	"os"
 	"sync"
+
+	"github.com/go-errors/errors"
 )
 
-// 並列化してCSVを生成する
+// Parallelize CSV generation
 func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 	var wg sync.WaitGroup
+	// Add numGoroutines to the WaitGroup
 	wg.Add(numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
+		// Call GenerateLargeCSV in a goroutine for numGoroutines times
 		go func(wg *sync.WaitGroup, i int) {
 			fileName := fmt.Sprintf("%s_%d", fileName, i)
 			GenerateLargeCSV(numRows, fileName)
+			// Decrement the WaitGroup counter after each goroutine finishes
 			defer wg.Done()
 		}(&wg, i)
 	}
+	// Wait for all goroutines to finish
 	wg.Wait()
-	print("Done GenerateLargeCSVParallel")
+	fmt.Printf("Done GenerateLargeCSVParallel")
 
-	err := compressCSVFiles("test_data.zip", numGoroutines, fileName)
+	err := compressCSVFiles(fmt.Sprintf("%s.zip", fileName), numGoroutines, fileName)
 	if err != nil {
 		panic(err)
 	}
-	print("Compression Done")
-
 }
 
 func compressCSVFiles(zipFileName string, numFiles int, csvFileName string) error {
@@ -74,33 +78,39 @@ func compressCSVFiles(zipFileName string, numFiles int, csvFileName string) erro
 	return nil
 }
 
-// thread safe csv writer
-// type CsvWriter struct {
-// 	mutex     *sync.Mutex
-// 	csvWriter *csv.Writer
-// }
+// Parallelize CSV generation
+func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName string) {
+	err := os.Mkdir("data", 0777)
+	if err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			panic(err)
+		}
+	}
+	file, err := os.Create(fmt.Sprintf("data/%s.csv", fileName))
+	if err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			panic(err)
+		}
+	}
+	defer file.Close()
 
-// func NewCSVWriter(fileName string) (*CsvWriter, error) {
-// 	csvFile, err := os.Create(fileName)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	w := csv.NewWriter(csvFile)
-// 	return &CsvWriter{csvWriter: w, mutex: &sync.Mutex{}}, nil
-// }
+	var wg sync.WaitGroup
+	// Add numGoroutines to the WaitGroup
+	wg.Add(numGoroutines)
 
-// lock and write
-// func (w *CsvWriter) Write(row []string) error {
-// 	w.mutex.Lock()
-// 	err := w.csvWriter.Write(row)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	w.mutex.Unlock()
-// 	return nil
-// }
-
-// lock and flush
-// func (w *CsvWriter) Flush() {
-// 	w.csvWriter.Flush()
-// }
+	writer, err := NewCSVWriter(file)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < numGoroutines; i++ {
+		// Call GenerateLargeCSV in a goroutine for numGoroutines times
+		go func(wg *sync.WaitGroup, i int, writer *CsvWriter) {
+			GenerateLargeCSVWithLock(numRows, writer)
+			// Decrement the WaitGroup counter after each goroutine finishes
+			defer wg.Done()
+		}(&wg, i, writer)
+	}
+	// Wait for all goroutines to finish
+	wg.Wait()
+	fmt.Printf("Done GenerateLargeCSVParallelToOneFile")
+}

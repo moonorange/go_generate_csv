@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	totalNumRows = 100000000
+	totalNumRows = 10000000
 	fileName     = "test_data"
 )
 
@@ -19,6 +19,11 @@ func BenchmarkGenerateLargeCSVParallel(b *testing.B) {
 
 func BenchmarkGenerateLargeCSV(b *testing.B) {
 	GenerateLargeCSV(totalNumRows, fileName)
+	defer CleanUp()
+}
+
+func BenchmarkGenerateLargeCSVParallelToOneFile(b *testing.B) {
+	GenerateLargeCSVParallelToOneFile(totalNumRows/10, 10, fileName)
 	defer CleanUp()
 }
 
