@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -13,8 +14,8 @@ import (
 )
 
 const (
-	numRowsTotal   = 1000
-	numGoroutines  = 1
+	numRowsTotal   = 10000000
+	numGoroutines  = 10
 	numRowsPerFile = numRowsTotal / numGoroutines
 )
 
@@ -38,7 +39,7 @@ func GenerateLargeCSV(numRows int, fileName string) {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			panic(err)
+			log.Printf("error occurred in file.Close() err: %+v", err)
 		}
 	}()
 
@@ -84,7 +85,7 @@ func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 	}
 	// Wait for all goroutines to finish
 	wg.Wait()
-	fmt.Printf("Done GenerateLargeCSVParallel")
+	// fmt.Printf("Done GenerateLargeCSVParallel")
 }
 
 // Parallelize CSV generation
@@ -104,7 +105,7 @@ func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName stri
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			panic(err)
+			log.Printf("error occurred in file.Close() err: %+v", err)
 		}
 	}()
 
@@ -126,7 +127,7 @@ func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName stri
 	}
 	// Wait for all goroutines to finish
 	wg.Wait()
-	fmt.Printf("Done GenerateLargeCSVParallelToOneFile")
+	// fmt.Printf("Done GenerateLargeCSVParallelToOneFile")
 }
 
 func GenerateLargeCSVWithLock(numRows int, writer *CsvWriter) {
@@ -155,7 +156,7 @@ func (w *CsvWriter) Write(row []string) error {
 	w.mutex.Lock()
 	err := w.csvWriter.Write(row)
 	if err != nil {
-		return err
+		return fmt.Errorf("error occurred in csvWriter.Write: err %+v", err)
 	}
 	w.mutex.Unlock()
 	return nil
@@ -166,4 +167,11 @@ func (w *CsvWriter) Flush() {
 	w.mutex.Lock()
 	w.csvWriter.Flush()
 	w.mutex.Unlock()
+}
+
+func CleanUp() {
+	err := os.RemoveAll("data")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

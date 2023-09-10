@@ -10,18 +10,19 @@ import (
 )
 
 const (
-	fileName  = "test_data"
-	fileName2 = "test_data2"
+	fileName     = "test_data"
+	fileName2    = "test_data2"
+	totalNumRows = 1000000000
 )
 
 var testCases = []struct {
 	totalNumRows  int
 	numGoroutines int
 }{
-	{totalNumRows: 100000000, numGoroutines: 5},
-	{totalNumRows: 100000000, numGoroutines: 10},
-	{totalNumRows: 100000000, numGoroutines: 15},
-	{totalNumRows: 100000000, numGoroutines: 20},
+	{totalNumRows: totalNumRows, numGoroutines: 5},
+	{totalNumRows: totalNumRows, numGoroutines: 10},
+	{totalNumRows: totalNumRows, numGoroutines: 15},
+	{totalNumRows: totalNumRows, numGoroutines: 20},
 }
 
 func BenchmarkGenerateLargeCSV(b *testing.B) {
@@ -40,25 +41,20 @@ func BenchmarkGenerateLargeCSV(b *testing.B) {
 	}()
 
 	writer := csv.NewWriter(file)
-	b.Run(fmt.Sprintf("totalNumRows=%d", 100000000), func(b *testing.B) {
-		GenerateLargeCSV(100000000, writer)
+	b.Run(fmt.Sprintf("totalNumRows=%d", totalNumRows), func(b *testing.B) {
+		GenerateLargeCSV(totalNumRows, writer)
 	})
-	for _, tc := range testCases {
-		b.Run(fmt.Sprintf("totalNumRows=%d,numGoroutines=%d", tc.totalNumRows, tc.numGoroutines), func(b *testing.B) {
-			GenerateLargeCSVParallelToOneFile(tc.totalNumRows/tc.numGoroutines, tc.numGoroutines, fileName2)
-		})
-	}
 }
 
-// func BenchmarkGenerateLargeCSVParallelToOneFile(b *testing.B) {
-// 	SetUp()
-// 	for _, tc := range testCases {
-// 		b.Run(fmt.Sprintf("totalNumRows=%d,numGoroutines=%d", tc.totalNumRows, tc.numGoroutines), func(b *testing.B) {
-// 			GenerateLargeCSVParallelToOneFile(tc.totalNumRows/tc.numGoroutines, tc.numGoroutines, fileName)
-// 		})
-// 	}
-// 	defer CleanUp()
-// }
+func BenchmarkGenerateLargeCSVParallelToOneFile(b *testing.B) {
+	SetUp()
+	defer CleanUp()
+	// for _, tc := range testCases {
+	// 	b.Run(fmt.Sprintf("totalNumRows=%d,numGoroutines=%d", tc.totalNumRows, tc.numGoroutines), func(b *testing.B) {
+	GenerateLargeCSVParallelToOneFile(totalNumRows/10, 10, fileName2)
+	// })
+	// }
+}
 
 func SetUp() {
 	err := os.Mkdir("data", 0777)

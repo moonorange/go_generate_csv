@@ -10,13 +10,21 @@ import (
 	"github.com/brianvoe/gofakeit"
 )
 
+const batchSize = 10000
+
 func GenerateLargeCSV(numRows int, writer *csv.Writer) {
 	for i := 0; i < numRows; i++ {
 		row := generateFakeRow()
 		if err := writer.Write(row); err != nil {
 			panic(err)
 		}
+		if i > 0 && i%batchSize == 0 {
+			PrintMemUsage()
+			writer.Flush()
+		}
 	}
+	fmt.Printf("GenerateLargeCSV last flash\n")
+	PrintMemUsage()
 	writer.Flush()
 }
 
@@ -37,7 +45,13 @@ func GenerateLargeCSVWithLock(numRows int, writer *CsvWriter) {
 		if err := writer.Write(row); err != nil {
 			panic(err)
 		}
+		// if i > 0 && i%batchSize == 0 {
+		// 	PrintMemUsage()
+		// 	writer.Flush()
+		// }
 	}
+	fmt.Printf("GenerateLargeCSVWithLock last flash\n")
+	PrintMemUsage()
 	writer.Flush()
 }
 

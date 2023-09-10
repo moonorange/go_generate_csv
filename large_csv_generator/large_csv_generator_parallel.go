@@ -47,7 +47,7 @@ func GenerateLargeCSVParallel(numRows, numGoroutines int, fileName string) {
 	}
 	// Wait for all goroutines to finish
 	wg.Wait()
-	fmt.Printf("Done GenerateLargeCSVParallel")
+	// fmt.Printf("Done GenerateLargeCSVParallel")
 
 	err = compressCSVFiles(fmt.Sprintf("%s.zip", fileName), numGoroutines, fileName)
 	if err != nil {
@@ -152,5 +152,5 @@ func GenerateLargeCSVParallelToOneFile(numRows, numGoroutines int, fileName stri
 	}
 	// Wait for all goroutines to finish
 	wg.Wait()
-	fmt.Printf("Done GenerateLargeCSVParallelToOneFile")
+	// fmt.Printf("Done GenerateLargeCSVParallelToOneFile")
 }
